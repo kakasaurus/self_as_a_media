@@ -2,46 +2,122 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>메시지 보내기</title>
   <style>
-    body { font-family: sans-serif; background: #fafafa; padding: 40px; }
-    h1 { text-align: center; }
-    form { max-width: 500px; margin: auto; display: flex; flex-direction: column; gap: 15px; }
-    textarea { resize: none; height: 80px; font-size: 1em; padding: 8px; }
-    button { background: #007aff; color: white; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-size: 1em; }
-    button:hover { background: #005fcc; }
+    body {
+      font-family: 'Arial', sans-serif;
+      background: #fffaf0;
+      margin: 0;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      color: #444;
+    }
+
+    form {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      width: 100%;
+      max-width: 1200px;
+    }
+
+    .question {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 30%;
+    }
+
+    .question label {
+      font-size: 1.1em;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    textarea {
+      width: 100%;
+      height: 120px;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      padding: 10px;
+      resize: none;
+      font-size: 1em;
+      background: #fff;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    button {
+      margin-top: 30px;
+      background-color: #ffd966;
+      border: none;
+      padding: 10px 30px;
+      font-size: 1.1em;
+      font-weight: bold;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #ffcc33;
+    }
   </style>
 </head>
 <body>
-  <h1>당신의 생각을 들려주세요 💬</h1>
+  <h1>나의 생각을 보내주세요</h1>
+
   <form id="messageForm">
-    <label>1️⃣ 내가 생각하는 미디어란?<br><textarea name="q1"></textarea></label>
-    <label>2️⃣내가 받고 싶은 메시지는?<br><textarea name="q2"></textarea></label>
-    <label>3️⃣ 내가 보내고 싶은 메시지는?<br><textarea name="q3"></textarea></label>
-    <button type="submit">보내기</button>
+    <div class="question">
+      <label for="q1">1. 내가 생각하는 미디어란?</label>
+      <textarea id="q1" name="q1" placeholder="여기에 입력..."></textarea>
+    </div>
+
+    <div class="question">
+      <label for="q2">2. 내가 받고 싶은 메시지는?</label>
+      <textarea id="q2" name="q2" placeholder="여기에 입력..."></textarea>
+    </div>
+
+    <div class="question">
+      <label for="q3">3. 내가 전하고 싶은 메시지는?</label>
+      <textarea id="q3" name="q3" placeholder="여기에 입력..."></textarea>
+    </div>
   </form>
 
-  <script>
-    document.getElementById("messageForm").addEventListener("submit", function(e) {
-      e.preventDefault();
+  <button type="submit" form="messageForm">보내기</button>
 
-      const q1 = this.q1.value.trim();
-      const q2 = this.q2.value.trim();
-      const q3 = this.q3.value.trim();
+  <script>
+    document.getElementById("messageForm").addEventListener("submit", function(event) {
+      event.preventDefault();
+
+      const q1 = document.getElementById("q1").value.trim();
+      const q2 = document.getElementById("q2").value.trim();
+      const q3 = document.getElementById("q3").value.trim();
 
       if (!q1 && !q2 && !q3) {
-        alert("적어도 한 개의 질문에는 답해주세요!");
+        alert("하나 이상의 질문에 답해주세요!");
         return;
       }
 
-      const entry = { id: Date.now(), q1, q2, q3 };
+      // pick whichever question was answered
+      const message = q1 || q2 || q3;
+      const question = q1 ? "1" : q2 ? "2" : "3";
 
-      const existing = JSON.parse(localStorage.getItem("postIts") || "[]");
-      existing.push(entry);
-      localStorage.setItem("postIts", JSON.stringify(existing));
+      // send via localStorage
+      let posts = JSON.parse(localStorage.getItem("posts")) || [];
+      posts.push({ question, message });
+      localStorage.setItem("posts", JSON.stringify(posts));
 
-      this.reset();
-      alert("메시지가 벽에 붙었습니다! 🎉");
+      alert("✅ 메시지가 벽에 붙었습니다!");
+      document.getElementById("messageForm").reset();
     });
   </script>
 </body>
