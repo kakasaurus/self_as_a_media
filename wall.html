@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>메시지 벽</title>
+  <style>
+    body { margin: 0; font-family: sans-serif; background: #eaeaea; height: 100vh; display: flex; overflow: hidden; }
+    .column { flex: 1; padding: 20px; overflow-y: auto; position: relative; border-right: 2px solid #ccc; }
+    .column:last-child { border-right: none; }
+    .title { text-align: center; font-weight: bold; margin-bottom: 10px; }
+    .postit {
+      position: absolute;
+      background: #fffa75;
+      padding: 10px;
+      width: 150px;
+      box-shadow: 2px 2px 6px rgba(0,0,0,0.2);
+      transform: rotate(var(--angle));
+      border-radius: 4px;
+      font-size: 0.9em;
+      white-space: pre-wrap;
+      transition: transform 0.2s;
+      cursor: pointer;
+    }
+    .postit:hover {
+      transform: scale(1.05) rotate(var(--angle));
+      z-index: 5;
+    }
+
+    /* 확대 모달 */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      display: flex; align-items: center; justify-content: center;
+      visibility: hidden; opacity: 0; transition: opacity 0.3s;
+    }
+    .overlay.active { visibility: visible; opacity: 1; }
+    .modal {
+      background: #fff; padding: 20px; border-radius: 8px; max-width: 400px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+    .modal p { white-space: pre-wrap; }
+    .modal button {
+      margin: 10px 5px; padding: 8px 14px; border: none;
+      border-radius: 6px; cursor: pointer; font-size: 0.9em;
+    }
+    .delete-btn { background: #ff4d4d; color: white; }
+    .close-btn { background: #ccc; }
+  </style>
+</head>
+<body>
+  <div class="column" id="col1">
+    <div class="title">1️⃣ 내가 생각하는 미디어는?</div>
+  </div>
+  <div class="column" id="col2">
+    <div class="title">2️⃣ 내가 받고 싶은 메시지는?</div>
+  </div>
+  <div class="column" id="col3">
+    <div class="title">3️⃣ 내가 전하고 싶은 메시지는?</div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <p id="modalText"></p>
+      <div>
+        <button class="delete-btn" id="deleteBtn">삭제</button>
+        <button class="close-btn" id="closeBtn">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const colors = ["#fff89a", "#b9fbc0", "#a0c4ff", "#ffd6a5", "#fbb1bd", "#caffbf"];
+    const data = JSON.parse(localStorage.getItem("postIts") || "[]");
+
+    const overlay = document.getElementById("overlay");
+    const modalText = document.getElementById("modalText");
+    let selectedId = null;
+
+    function addPostIt(container, text, id) {
+      if (!text) return;
+      const div = document.createElement("div");
+      div.className = "postit";
+      div.textContent = text;
+      div.dataset.id = id;
+      div.style.setProperty("--angle", (Math.random() * 10 - 5) + "deg");
+      div.style.top = Math.random() * 80 + "%";
+      div.style.left = Math.random() * 60 + "%";
+      div.style.backgroundColor = colors[Math.floor(Math.random()*colors.length)];
+
+      div.addEventListener("click", () => {
+        selectedId = id;
+        modalText.textContent = text;
+        overlay.classList.add("active");
+      });
+
+      container.appendChild(div);
+    }
+
+    data.forEach(entry => {
+      addPostIt(document.getElementById("col1"), entry.q1, entry.id);
+      addPostIt(document.getElementById("col2"), entry.q2, entry.id);
+      addPostIt(document.getElementById("col3"), entry.q3, entry.id);
+    });
+
+    // 닫기
+    document.getElementById("closeBtn").addEventListener("click", () => {
+      overlay.classList.remove("active");
+    });
+
+    // 삭제
+    document.getElementById("deleteBtn").addEventListener("click", () => {
+      if (!selectedId) return;
+      const updated = data.filter(e => e.id !== selectedId);
+      localStorage.setItem("postIts", JSON.stringify(updated));
+      overlay.classList.remove("active");
+      location.reload();
+    });
+  </script>
+</body>
+</html>
