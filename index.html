@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>메시지 보내기</title>
+  <title>쪽지 보내기</title>
   <style>
     body {
       font-family: 'Arial', sans-serif;
@@ -116,9 +116,10 @@
       posts.push({ question, message });
       localStorage.setItem("posts", JSON.stringify(posts));
 
-      alert("✅ 메시지가 벽에 붙었습니다!");
+      alert("✅ 쪽지가 벽에 붙었습니다!");
       document.getElementById("messageForm").reset();
     });
   </script>
 </body>
 </html>
+
