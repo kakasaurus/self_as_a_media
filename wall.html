@@ -1,159 +1,175 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>메시지 벽</title>
   <style>
-    body { margin: 0; font-family: sans-serif; background: #eaeaea; height: 100vh; display: flex; overflow: hidden; }
-    .column { flex: 1; padding: 20px; overflow-y: auto; position: relative; border-right: 2px solid #ccc; }
-    .column:last-child { border-right: none; }
-    .title { text-align: center; font-weight: bold; margin-bottom: 10px; }
-    .postit {
-      position: absolute;
-      background: #fffa75;
-      padding: 10px;
-      width: 150px;
-      box-shadow: 2px 2px 6px rgba(0,0,0,0.2);
-      transform: rotate(var(--angle));
-      border-radius: 4px;
-      font-size: 0.9em;
-      white-space: pre-wrap;
-      transition: transform 0.2s;
-      cursor: pointer;
-    }
-    .postit:hover {
-      transform: scale(1.05) rotate(var(--angle));
-      z-index: 5;
+    body {
+      margin: 0;
+      background: #fefbf3;
+      font-family: 'Arial', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
     }
 
-    /* 확대 모달 */
-    .overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
-      display: flex; align-items: center; justify-content: center;
-      visibility: hidden; opacity: 0; transition: opacity 0.3s;
+    h1 {
+      margin: 20px 0;
+      color: #333;
     }
-    .overlay.active { visibility: visible; opacity: 1; }
-    .modal {
-      background: #fff; padding: 20px; border-radius: 8px; max-width: 400px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+
+    .wall {
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-start;
+      width: 100%;
+      max-width: 1400px;
+      flex-wrap: wrap;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .column {
+      flex: 1;
+      min-width: 300px;
+      background: #fff8dc;
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      position: relative;
+      min-height: 500px;
+    }
+
+    .column h2 {
       text-align: center;
+      color: #555;
+      font-size: 1.1em;
+      margin-bottom: 15px;
     }
-    .modal p { white-space: pre-wrap; }
-    .modal button {
-      margin: 10px 5px; padding: 8px 14px; border: none;
-      border-radius: 6px; cursor: pointer; font-size: 0.9em;
+
+    .postit {
+      position: absolute;
+      padding: 15px;
+      border-radius: 10px;
+      width: 160px;
+      min-height: 100px;
+      cursor: move;
+      box-shadow: 2px 3px 8px rgba(0,0,0,0.2);
+      word-wrap: break-word;
+      user-select: none;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 0.95em;
+      color: #333;
+      transition: transform 0.2s ease;
     }
-    .delete-btn { background: #ff4d4d; color: white; }
-    .close-btn { background: #ccc; }
+
+    .postit:hover {
+      transform: scale(1.05);
+    }
+
+    .zoomed {
+      transform: scale(1.8);
+      z-index: 1000;
+    }
   </style>
 </head>
 <body>
-  <div class="column" id="col1">
-    <div class="title">1️⃣ 내가 생각하는 미디어는?</div>
-  </div>
-  <div class="column" id="col2">
-    <div class="title">2️⃣ 내가 받고 싶은 메시지는?</div>
-  </div>
-  <div class="column" id="col3">
-    <div class="title">3️⃣ 내가 전하고 싶은 메시지는?</div>
-  </div>
+  <h1>메시지 벽</h1>
 
-  <div class="overlay" id="overlay">
-    <div class="modal">
-      <p id="modalText"></p>
-      <div>
-        <button class="delete-btn" id="deleteBtn">삭제</button>
-        <button class="close-btn" id="closeBtn">닫기</button>
-      </div>
+  <div class="wall">
+    <div class="column" id="col1">
+      <h2>1. 내가 생각하는 미디어란?</h2>
+    </div>
+    <div class="column" id="col2">
+      <h2>2. 내가 받고 싶은 메시지는?</h2>
+    </div>
+    <div class="column" id="col3">
+      <h2>3. 내가 전하고 싶은 메시지는?</h2>
     </div>
   </div>
 
   <script>
-    const colors = ["#fff89a", "#b9fbc0", "#a0c4ff", "#ffd6a5", "#fbb1bd", "#caffbf"];
-    const data = JSON.parse(localStorage.getItem("postIts") || "[]");
+    const colors = ['#ffeb99', '#c6f5d3', '#ffd6cc', '#d6e0ff', '#fce4ec', '#e0f7fa'];
+    const shapes = [
+      'images/cat.png',
+      'images/dog.png',
+      'images/cloud.png',
+      'images/star.png',
+      'images/heart.png'
+    ];
 
-    const overlay = document.getElementById("overlay");
-    const modalText = document.getElementById("modalText");
-    let selectedId = null;
-
-    function addPostIt(container, text, id) {
-      if (!text) return;
-      const div = document.createElement("div");
-      div.className = "postit";
-      div.textContent = text;
-      div.dataset.id = id;
-      div.style.setProperty("--angle", (Math.random() * 10 - 5) + "deg");
-      div.style.top = Math.random() * 80 + "%";
-      div.style.left = Math.random() * 60 + "%";
-      div.style.backgroundColor = colors[Math.floor(Math.random()*colors.length)];
-
-      div.addEventListener("click", () => {
-        selectedId = id;
-        modalText.textContent = text;
-        overlay.classList.add("active");
-      });
-
-      container.appendChild(div);
+    function random(min, max) {
+      return Math.random() * (max - min) + min;
     }
 
-    data.forEach(entry => {
-      addPostIt(document.getElementById("col1"), entry.q1, entry.id);
-      addPostIt(document.getElementById("col2"), entry.q2, entry.id);
-      addPostIt(document.getElementById("col3"), entry.q3, entry.id);
-    });
+    function createPostIt(text, question) {
+      const postit = document.createElement('div');
+      postit.className = 'postit';
+      postit.textContent = text;
 
-    // 닫기
-    document.getElementById("closeBtn").addEventListener("click", () => {
-      overlay.classList.remove("active");
-    });
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      postit.style.backgroundColor = color;
 
-    // 삭제
-    document.getElementById("deleteBtn").addEventListener("click", () => {
-      if (!selectedId) return;
-      const updated = data.filter(e => e.id !== selectedId);
-      localStorage.setItem("postIts", JSON.stringify(updated));
-      overlay.classList.remove("active");
-      location.reload();
-    });
-  </script>  <!-- your other scripts for loading post-its, random colors, etc. -->
+      // Optional: add random shape image if exists
+      if (Math.random() < 0.7) { // ~70% chance to use shape image
+        const shape = shapes[Math.floor(Math.random() * shapes.length)];
+        postit.style.backgroundImage = `url(${shape})`;
+      }
 
-  <script>
-  function makeDraggable(el) {
-    let offsetX, offsetY, isDragging = false;
+      const column = document.getElementById(`col${question}`);
+      column.appendChild(postit);
 
-    el.addEventListener('mousedown', e => {
-      isDragging = true;
-      offsetX = e.clientX - el.offsetLeft;
-      offsetY = e.clientY - el.offsetTop;
-      el.style.zIndex = 9999;
-    });
+      // random position inside the column
+      postit.style.top = random(50, column.clientHeight - 150) + 'px';
+      postit.style.left = random(20, column.clientWidth - 180) + 'px';
 
-    document.addEventListener('mousemove', e => {
-      if (!isDragging) return;
-      el.style.left = `${e.clientX - offsetX}px`;
-      el.style.top = `${e.clientY - offsetY}px`;
-    });
+      makeDraggable(postit);
 
-    document.addEventListener('mouseup', () => {
-      isDragging = false;
-      el.style.zIndex = '';
-    });
-  }
-
-  document.querySelectorAll('.postit').forEach(makeDraggable);
-
-  const observer = new MutationObserver(mutations => {
-    mutations.forEach(mutation => {
-      mutation.addedNodes.forEach(node => {
-        if (node.classList && node.classList.contains('postit')) {
-          makeDraggable(node);
+      postit.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (postit.classList.contains('zoomed')) {
+          postit.classList.remove('zoomed');
+        } else {
+          const choice = confirm("확대 보기입니다. 삭제하시겠습니까?");
+          if (choice) postit.remove();
+          else postit.classList.toggle('zoomed');
         }
       });
-    });
-  });
+    }
 
-  observer.observe(document.body, { childList: true, subtree: true });
+    function makeDraggable(el) {
+      let offsetX, offsetY, isDragging = false;
+
+      el.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        offsetX = e.clientX - el.offsetLeft;
+        offsetY = e.clientY - el.offsetTop;
+        el.style.zIndex = 1000;
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        el.style.left = (e.clientX - offsetX) + 'px';
+        el.style.top = (e.clientY - offsetY) + 'px';
+      });
+
+      document.addEventListener('mouseup', () => {
+        isDragging = false;
+        el.style.zIndex = '';
+      });
+    }
+
+    // load posts from localStorage
+    const posts = JSON.parse(localStorage.getItem("posts")) || [];
+    posts.forEach(p => createPostIt(p.message, p.question));
   </script>
-
 </body>
 </html>
