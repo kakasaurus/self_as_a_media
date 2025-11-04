@@ -115,6 +115,45 @@
       overlay.classList.remove("active");
       location.reload();
     });
+  </script>  <!-- your other scripts for loading post-its, random colors, etc. -->
+
+  <script>
+  function makeDraggable(el) {
+    let offsetX, offsetY, isDragging = false;
+
+    el.addEventListener('mousedown', e => {
+      isDragging = true;
+      offsetX = e.clientX - el.offsetLeft;
+      offsetY = e.clientY - el.offsetTop;
+      el.style.zIndex = 9999;
+    });
+
+    document.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+      el.style.left = `${e.clientX - offsetX}px`;
+      el.style.top = `${e.clientY - offsetY}px`;
+    });
+
+    document.addEventListener('mouseup', () => {
+      isDragging = false;
+      el.style.zIndex = '';
+    });
+  }
+
+  document.querySelectorAll('.postit').forEach(makeDraggable);
+
+  const observer = new MutationObserver(mutations => {
+    mutations.forEach(mutation => {
+      mutation.addedNodes.forEach(node => {
+        if (node.classList && node.classList.contains('postit')) {
+          makeDraggable(node);
+        }
+      });
+    });
+  });
+
+  observer.observe(document.body, { childList: true, subtree: true });
   </script>
+
 </body>
 </html>
