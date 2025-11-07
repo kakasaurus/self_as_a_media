@@ -1,130 +1,90 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>메시지 보내기</title>
+  <meta charset="UTF-8">
+  <title>보내기</title>
   <style>
     body {
-      font-family: 'Arial', sans-serif;
-      background: #d5f5ec;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      height: 100vh;
       margin: 0;
-      padding: 40px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      background: #f0f0f0;
+      font-family: sans-serif;
     }
-
-    h1 {
-      margin-bottom: 20px;
-      color: #444;
-    }
-
-    /* flex layout for the questions */
-    #questions-container {
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      flex-wrap: wrap; /* wraps neatly on smaller screens */
-      gap: 30px;
-      width: 100%;
-      max-width: 1200px;
-    }
-
-    .question {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      flex: 1;
-      min-width: 280px; /* ensures it doesn’t shrink too small */
-      max-width: 350px;
-    }
-
-    .question label {
-      font-size: 1.1em;
-      font-weight: bold;
-      color: #333;
-      margin-bottom: 10px;
-      text-align: center;
-    }
-
-    textarea {
-      width: 100%;
-      height: 120px;
-      border: 2px solid #ddd;
-      border-radius: 10px;
-      padding: 10px;
-      resize: none;
-      font-size: 1em;
+    .question-box {
+      width: 30%;
       background: #fff;
-      box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
     }
-
+    textarea {
+      width: 90%;
+      height: 120px;
+      resize: none;
+      margin-top: 10px;
+    }
     button {
-      margin-top: 30px;
-      background-color: #40e0d0;
+      margin-top: 10px;
+      padding: 8px 16px;
       border: none;
-      padding: 10px 30px;
-      font-size: 1.1em;
-      font-weight: bold;
-      border-radius: 10px;
+      border-radius: 8px;
+      background-color: #d5f5ec;
+      color: white;
       cursor: pointer;
-      transition: background-color 0.3s ease;
+      font-size: 14px;
     }
-
-    button:hover {
-      background-color: #ffcc33;
-    }
+    button:hover { background-color: #40e0d0; }
   </style>
 </head>
 <body>
-  <h1>나의 생각을 보내주세요</h1>
+  <div class="question-box">
+    <h3>1. 내가 생각하는 미디어란?</h3>
+    <textarea id="q1"></textarea>
+    <button onclick="submitAnswer(1)">보내기</button>
+  </div>
 
-  <form id="messageForm">
-    <div id="questions-container">
-      <div class="question">
-        <label for="q1">1. 내가 생각하는 미디어란?</label>
-        <textarea id="q1" name="q1" placeholder="여기에 입력..."></textarea>
-      </div>
+  <div class="question-box">
+    <h3>2. 내가 받고 싶은 메시지는?</h3>
+    <textarea id="q2"></textarea>
+    <button onclick="submitAnswer(2)">보내기</button>
+  </div>
 
-      <div class="question">
-        <label for="q2">2. 내가 받고 싶은 메시지는?</label>
-        <textarea id="q2" name="q2" placeholder="여기에 입력..."></textarea>
-      </div>
-
-      <div class="question">
-        <label for="q3">3. 내가 전하고 싶은 메시지는?</label>
-        <textarea id="q3" name="q3" placeholder="여기에 입력..."></textarea>
-      </div>
-    </div>
-    <button type="submit">보내기</button>
-  </form>
+  <div class="question-box">
+    <h3>3. 내가 전하고 싶은 메시지는?</h3>
+    <textarea id="q3"></textarea>
+    <button onclick="submitAnswer(3)">보내기</button>
+  </div>
 
   <script>
-    document.getElementById("messageForm").addEventListener("submit", function(event) {
-      event.preventDefault();
+    function randomColor() {
+      const colors = ["#BFE4EB","#D5EB9B","#FDFFC6","#FFDFF7","#FFDADB","#C1E2FF","#D5FFD8"];
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
 
-      const q1 = document.getElementById("q1").value.trim();
-      const q2 = document.getElementById("q2").value.trim();
-      const q3 = document.getElementById("q3").value.trim();
+    function submitAnswer(num) {
+      const input = document.getElementById(`q${num}`);
+      const text = input.value.trim();
+      if (!text) return alert("적어도 하나 이상의 질문에 답해주세요!");
 
-      if (!q1 && !q2 && !q3) {
-        alert("하나 이상의 질문에 답해주세요!");
-        return;
-      }
-
-      const message = q1 || q2 || q3;
-      const question = q1 ? "1" : q2 ? "2" : "3";
-
-      let posts = JSON.parse(localStorage.getItem("posts")) || [];
-      posts.push({ question, message });
-      localStorage.setItem("posts", JSON.stringify(posts));
-
-      alert("✅ 쪽지가 벽에 붙었습니다!");
-      document.getElementById("messageForm").reset();
-    });
+      const notes = JSON.parse(localStorage.getItem("notes")) || [];
+      notes.push({
+        question: num,
+        text: text,
+        color: randomColor(),
+        x: Math.random() * window.innerWidth * 0.6,
+        y: Math.random() * window.innerHeight * 0.6
+      });
+      localStorage.setItem("notes", JSON.stringify(notes));
+      input.value = "";
+      alert("쪽지가 벽에 붙었습니다! 📝");
+    }
   </script>
 </body>
 </html>
-
-
