@@ -1,90 +1,125 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>보내기</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>메시지 보내기</title>
   <style>
     body {
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      height: 100vh;
+      font-family: 'Arial', sans-serif;
+      background: #fffaf0;
       margin: 0;
-      background: #f0f0f0;
-      font-family: sans-serif;
-    }
-    .question-box {
-      width: 30%;
-      background: #fff;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      padding: 40px;
       display: flex;
       flex-direction: column;
       align-items: center;
+    }
+    h1 { color:#444; margin-bottom:18px; }
+    #questions-container {
+      display:flex;
+      gap:20px;
+      width:100%;
+      max-width:1200px;
       justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap:wrap;
     }
+    .question {
+      background: #fff8c6;
+      border-radius:12px;
+      padding:16px;
+      flex:1;
+      min-width:260px;
+      max-width: 36%;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+      display:flex;
+      flex-direction:column;
+    }
+    .question label { font-weight:700; margin-bottom:8px; text-align:center; }
     textarea {
-      width: 90%;
-      height: 120px;
-      resize: none;
-      margin-top: 10px;
+      resize:none;
+      height:120px;
+      border-radius:8px;
+      border:1px solid #ddd;
+      padding:10px;
+      background:#fffdf5;
+      font-size:14px;
     }
+    .submit-wrap { width:100%; max-width:1200px; display:flex; justify-content:center; margin-top:18px; }
     button {
-      margin-top: 10px;
-      padding: 8px 16px;
-      border: none;
-      border-radius: 8px;
-      background-color: #d5f5ec;
-      color: white;
-      cursor: pointer;
-      font-size: 14px;
+      background:#ffd966;
+      border:none;
+      padding:12px 28px;
+      border-radius:10px;
+      font-weight:700;
+      cursor:pointer;
     }
-    button:hover { background-color: #40e0d0; }
+    button:hover { background:#ffcc33; }
+    @media (max-width:900px){
+      .question { max-width: 100%; }
+    }
   </style>
 </head>
 <body>
-  <div class="question-box">
-    <h3>1. 내가 생각하는 미디어란?</h3>
-    <textarea id="q1"></textarea>
-    <button onclick="submitAnswer(1)">보내기</button>
-  </div>
+  <h1>나의 생각을 보내주세요</h1>
 
-  <div class="question-box">
-    <h3>2. 내가 받고 싶은 메시지는?</h3>
-    <textarea id="q2"></textarea>
-    <button onclick="submitAnswer(2)">보내기</button>
-  </div>
+  <form id="messageForm">
+    <div id="questions-container">
+      <div class="question">
+        <label for="q1">1. 내가 생각하는 미디어란?</label>
+        <textarea id="q1" name="q1" placeholder="여기에 입력..."></textarea>
+      </div>
 
-  <div class="question-box">
-    <h3>3. 내가 전하고 싶은 메시지는?</h3>
-    <textarea id="q3"></textarea>
-    <button onclick="submitAnswer(3)">보내기</button>
-  </div>
+      <div class="question">
+        <label for="q2">2. 내가 받고 싶은 메시지는?</label>
+        <textarea id="q2" name="q2" placeholder="여기에 입력..."></textarea>
+      </div>
+
+      <div class="question">
+        <label for="q3">3. 내가 전하고 싶은 메시지는?</label>
+        <textarea id="q3" name="q3" placeholder="여기에 입력..."></textarea>
+      </div>
+    </div>
+
+    <div class="submit-wrap">
+      <button type="submit">보내기</button>
+    </div>
+  </form>
 
   <script>
-    function randomColor() {
-      const colors = ["#BFE4EB","#D5EB9B","#FDFFC6","#FFDFF7","#FFDADB","#C1E2FF","#D5FFD8"];
-      return colors[Math.floor(Math.random() * colors.length)];
-    }
+    // 한 번에 제출(세 질문 중 하나 이상 응답 가능)
+    document.getElementById('messageForm').addEventListener('submit', function(e){
+      e.preventDefault();
 
-    function submitAnswer(num) {
-      const input = document.getElementById(`q${num}`);
-      const text = input.value.trim();
-      if (!text) return alert("적어도 하나 이상의 질문에 답해주세요!");
+      const q1 = document.getElementById('q1').value.trim();
+      const q2 = document.getElementById('q2').value.trim();
+      const q3 = document.getElementById('q3').value.trim();
 
-      const notes = JSON.parse(localStorage.getItem("notes")) || [];
-      notes.push({
-        question: num,
-        text: text,
-        color: randomColor(),
-        x: Math.random() * window.innerWidth * 0.6,
-        y: Math.random() * window.innerHeight * 0.6
-      });
-      localStorage.setItem("notes", JSON.stringify(notes));
-      input.value = "";
-      alert("쪽지가 벽에 붙었습니다! 📝");
-    }
+      if (!q1 && !q2 && !q3) {
+        alert('하나 이상의 질문에 답해주세요!');
+        return;
+      }
+
+      // 기존 저장 포맷 유지: postIts 배열, 각 항목에 id, q1,q2,q3
+      const entry = {
+        id: Date.now() + '-' + Math.floor(Math.random()*1000),
+        q1: q1 || '',
+        q2: q2 || '',
+        q3: q3 || ''
+      };
+
+      const existing = JSON.parse(localStorage.getItem('postIts') || '[]');
+      existing.push(entry);
+      localStorage.setItem('postIts', JSON.stringify(existing));
+
+      // 알림 및 리셋
+      alert('메시지가 벽에 붙었습니다! 🎉');
+      this.reset();
+
+      // (선택) wall 페이지가 다른 탭에 열려있다면 자동으로 업데이트되도록 storage 이벤트 유발
+      // 다른 탭에서 storage 이벤트를 수신하면 wall이 갱신됩니다.
+      localStorage.setItem('postIts.lastUpdate', Date.now());
+    });
   </script>
 </body>
 </html>
