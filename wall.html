@@ -1,80 +1,245 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>메시지 월</title>
+  <meta charset="UTF-8" />
+  <title>메시지 벽</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    body {
-      background: #f4f4f4;
-      overflow: hidden;
-      height: 100vh;
-      margin: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    #wall {
-      width: 90%;
-      height: 90%;
-      background: #fffde7;
-      position: relative;
-      border: 2px solid #ddd;
-      box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
-    }
-    .note {
+    body { margin: 0; font-family: sans-serif; background: #eaeaea; height: 100vh; display: flex; overflow: hidden; }
+    .column { flex: 1; padding: 20px; overflow-y: auto; position: relative; border-right: 2px solid #ccc; box-sizing: border-box; }
+    .column:last-child { border-right: none; }
+    .title { text-align: center; font-weight: bold; margin-bottom: 10px; position: sticky; top: 0; background: transparent; z-index: 20; padding-top:6px; }
+    .postit {
       position: absolute;
-      width: 180px;
-      min-height: 100px;
+      background: #fffa75;
       padding: 10px;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      cursor: move;
-      font-family: sans-serif;
+      width: 150px;
+      box-shadow: 2px 2px 6px rgba(0,0,0,0.2);
+      transform: rotate(var(--angle));
+      border-radius: 4px;
+      font-size: 0.9em;
+      white-space: pre-wrap;
+      transition: transform 0.2s;
+      cursor: grab;
+      z-index: 5; /* titles have z-index:20 so they stay visible */
       user-select: none;
-      transition: transform 0.1s ease;
     }
-    .note:hover { transform: scale(1.05); }
+    .postit:active { cursor: grabbing; transform: scale(1.05) rotate(var(--angle)); }
+    .postit:hover { transform: scale(1.05) rotate(var(--angle)); z-index: 6; }
+
+    /* 확대 모달 */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      display: flex; align-items: center; justify-content: center;
+      visibility: hidden; opacity: 0; transition: opacity 0.3s;
+    }
+    .overlay.active { visibility: visible; opacity: 1; }
+    .modal {
+      background: #fff; padding: 20px; border-radius: 8px; max-width: 400px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+    .modal p { white-space: pre-wrap; }
+    .modal button {
+      margin: 10px 5px; padding: 8px 14px; border: none;
+      border-radius: 6px; cursor: pointer; font-size: 0.9em;
+    }
+    .delete-btn { background: #ff4d4d; color: white; }
+    .close-btn { background: #ccc; }
   </style>
 </head>
 <body>
-  <div id="wall"></div>
+  <div class="column" id="col1">
+    <div class="title">1️⃣ 내가 생각하는 미디어란?</div>
+  </div>
+  <div class="column" id="col2">
+    <div class="title">2️⃣ 내가 받고 싶은 메시지는?</div>
+  </div>
+  <div class="column" id="col3">
+    <div class="title">3️⃣ 내가 전하고 싶은 메시지는?</div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <p id="modalText"></p>
+      <div>
+        <button class="delete-btn" id="deleteBtn">삭제</button>
+        <button class="close-btn" id="closeBtn">닫기</button>
+      </div>
+    </div>
+  </div>
 
   <script>
-    const wall = document.getElementById("wall");
-    const notes = JSON.parse(localStorage.getItem("notes")) || [];
+    // 색상 목록
+    const colors = ["#fff89a", "#b9fbc0", "#a0c4ff", "#ffd6a5", "#fbb1bd", "#caffbf"];
+    let data = JSON.parse(localStorage.getItem("postIts") || "[]");
 
-    notes.forEach((note, index) => {
+    const overlay = document.getElementById("overlay");
+    const modalText = document.getElementById("modalText");
+    let selectedId = null;
+    let selectedDiv = null;
+
+    // 포스트잇 생성: container는 컬럼 element, text와 id 필요
+    function addPostIt(container, text, id) {
+      if (!text) return;
       const div = document.createElement("div");
-      div.className = "note";
-      div.textContent = note.text;
-      div.style.background = note.color;
-      div.style.left = note.x + "px";
-      div.style.top = note.y + "px";
+      div.className = "postit";
+      div.textContent = text;
+      div.dataset.id = id;
+      // random angle
+      div.style.setProperty("--angle", (Math.random() * 10 - 5) + "deg");
+      // random color
+      div.style.backgroundColor = colors[Math.floor(Math.random()*colors.length)];
 
-      // 드래그 기능
-      let offsetX, offsetY;
-      div.onmousedown = function (e) {
-        offsetX = e.clientX - div.offsetLeft;
-        offsetY = e.clientY - div.offsetTop;
-        document.onmousemove = function (e) {
-          div.style.left = (e.clientX - offsetX) + "px";
-          div.style.top = (e.clientY - offsetY) + "px";
-        };
-        document.onmouseup = function () {
-          document.onmousemove = null;
-        };
-      };
+      // 위치: 제목 높이 아래에서 랜덤 (제목이 가려지지 않게)
+      const title = container.querySelector('.title');
+      const topOffset = title ? title.offsetHeight + 10 : 10;
+      // clientHeight might be small early; clamp safely
+      const maxTop = Math.max(80, container.clientHeight - 160);
+      const maxLeft = Math.max(40, container.clientWidth - 180);
 
-      // 클릭 시 삭제 확인
-      div.onclick = function () {
-        if (confirm("이 포스트잇을 삭제할까요?")) {
-          notes.splice(index, 1);
-          localStorage.setItem("notes", JSON.stringify(notes));
-          wall.removeChild(div);
+      // Use px positions relative to container
+      const topPx = topOffset + Math.random() * Math.max(0, maxTop - topOffset);
+      const leftPx = 10 + Math.random() * Math.max(0, maxLeft - 20);
+
+      div.style.top = topPx + 'px';
+      div.style.left = leftPx + 'px';
+
+      // 클릭 -> 모달 (확대/삭제)
+      div.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectedId = id;
+        selectedDiv = div;
+        modalText.textContent = text;
+        overlay.classList.add('active');
+      });
+
+      container.appendChild(div);
+      makeDraggable(div, container);
+    }
+
+    // 드래그 기능: div를 container 내부에서 이동
+    function makeDraggable(el, container) {
+      let offsetX = 0, offsetY = 0, isDragging = false;
+
+      el.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        // bring to front
+        el.style.zIndex = 100;
+        // compute offsets relative to container
+        const rect = container.getBoundingClientRect();
+        offsetX = e.clientX - rect.left - el.offsetLeft;
+        offsetY = e.clientY - rect.top - el.offsetTop;
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const rect = container.getBoundingClientRect();
+        let x = e.clientX - rect.left - offsetX;
+        let y = e.clientY - rect.top - offsetY;
+
+        // clamp inside container
+        x = Math.max(5, Math.min(x, container.clientWidth - el.offsetWidth - 5));
+        y = Math.max( (container.querySelector('.title')?.offsetHeight || 0) + 5, 
+                     Math.min(y, container.clientHeight - el.offsetHeight - 5));
+
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (isDragging) {
+          // optional: persist position in data (not required by request)
+          // we won't persist layout globally unless you ask for it
+          el.style.zIndex = 5;
         }
-      };
+        isDragging = false;
+      });
 
-      wall.appendChild(div);
+      // touch support
+      el.addEventListener('touchstart', (e) => {
+        const t = e.touches[0];
+        isDragging = true;
+        const rect = container.getBoundingClientRect();
+        offsetX = t.clientX - rect.left - el.offsetLeft;
+        offsetY = t.clientY - rect.top - el.offsetTop;
+        el.style.zIndex = 100;
+        e.preventDefault();
+      }, {passive:false});
+
+      document.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        const t = e.touches[0];
+        const rect = container.getBoundingClientRect();
+        let x = t.clientX - rect.left - offsetX;
+        let y = t.clientY - rect.top - offsetY;
+        x = Math.max(5, Math.min(x, container.clientWidth - el.offsetWidth - 5));
+        y = Math.max( (container.querySelector('.title')?.offsetHeight || 0) + 5, 
+                      Math.min(y, container.clientHeight - el.offsetHeight - 5));
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+        e.preventDefault();
+      }, {passive:false});
+
+      document.addEventListener('touchend', () => {
+        if (isDragging) el.style.zIndex = 5;
+        isDragging = false;
+      });
+    }
+
+    // 로컬스토리지에서 불러와서 각 컬럼에 추가
+    function renderAll() {
+      // clear existing postits in columns first
+      ['col1','col2','col3'].forEach(id => {
+        const col = document.getElementById(id);
+        // remove all existing postit nodes
+        Array.from(col.querySelectorAll('.postit')).forEach(n => n.remove());
+      });
+
+      data = JSON.parse(localStorage.getItem('postIts') || '[]'); // reload
+      data.forEach(entry => {
+        addPostIt(document.getElementById('col1'), entry.q1, entry.id);
+        addPostIt(document.getElementById('col2'), entry.q2, entry.id);
+        addPostIt(document.getElementById('col3'), entry.q3, entry.id);
+      });
+    }
+
+    // 초기 렌더
+    window.addEventListener('load', () => {
+      renderAll();
+    });
+
+    // 모달 닫기
+    document.getElementById('closeBtn').addEventListener('click', () => {
+      overlay.classList.remove('active');
+      selectedId = null;
+      selectedDiv = null;
+    });
+
+    // 삭제: 선택된 ID로 data 필터링 후 저장 및 리렌더
+    document.getElementById('deleteBtn').addEventListener('click', () => {
+      if (!selectedId) return;
+      // filter out any entry that has that id in any q
+      const updated = data.filter(e => e.id !== selectedId);
+      localStorage.setItem('postIts', JSON.stringify(updated));
+      overlay.classList.remove('active');
+      // update in-memory and re-render
+      data = updated;
+      renderAll();
+      selectedId = null;
+      selectedDiv = null;
+    });
+
+    // 다른 탭/창에서 submit으로 업데이트될 때 자동 반영 (storage 이벤트 수신)
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'postIts' || e.key === 'postIts.lastUpdate') {
+        renderAll();
+      }
+    });
+
+    // 클릭 빈 공간 시 모달 닫기
+    document.body.addEventListener('click', () => {
+      overlay.classList.remove('active');
     });
   </script>
 </body>
